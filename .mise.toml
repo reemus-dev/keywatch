@@ -1,0 +1,89 @@
+[tools]
+node = "26.8.1"
+"npm:prettier" = "3.9.6"
+"github:asciinema/asciinema" = "3.2.1"
+"github:asciinema/agg" = "1.9.0"
+
+[tasks.build]
+description = "Build a release binary for this Mac at .build/release/keywatch"
+run = "swift build -c release -Xswiftc -warnings-as-errors"
+
+[tasks.check]
+description = "Build, smoke-test the binary, and check text formatting"
+depends = ["build"]
+run = [
+  ".build/release/keywatch --version",
+  ".build/release/keywatch --help >/dev/null",
+  "prettier --check .",
+]
+
+[tasks.format]
+description = "Format repository text files"
+run = "prettier --write ."
+
+[tasks."release:build"]
+description = "Build arm64 and x86_64 release archives and checksums into dist/ (requires VERSION)"
+run = '''
+set -eu
+: "${VERSION:?set VERSION, for example VERSION=0.1.0}"
+trap 'git checkout -- Sources/keywatch/Version.swift' EXIT
+printf '// Release builds replace this with the tag version.\nlet version = "%s"\n' "$VERSION" >Sources/keywatch/Version.swift
+rm -rf dist
+mkdir -p dist
+for arch in arm64 x86_64; do
+  swift build -c release --arch "$arch" -Xswiftc -warnings-as-errors
+  bin="$(swift build -c release --arch "$arch" --show-bin-path)"
+  stage="dist/keywatch_${VERSION}_Darwin_${arch}"
+  mkdir -p "$stage"
+  cp "$bin/keywatch" LICENSE README.md "$stage/"
+  tar -czf "$stage.tar.gz" -C "$stage" .
+  rm -rf "$stage"
+done
+(cd dist && shasum -a 256 ./*.tar.gz | sed 's| \./| |' >checksums.txt)
+'''
+
+[tasks."release:formula"]
+description = "Print the Homebrew formula for the archives in dist/ (requires VERSION)"
+run = '''
+set -eu
+: "${VERSION:?set VERSION, for example VERSION=0.1.0}"
+base="https://github.com/reemus-dev/keywatch/releases/download/v${VERSION}"
+sha() { awk -v file="keywatch_${VERSION}_Darwin_$1.tar.gz" '$2 == file {print $1}' dist/checksums.txt; }
+cat <<EOF
+class Keywatch < Formula
+  desc "Live view of macOS key events with hold times"
+  homepage "https://github.com/reemus-dev/keywatch"
+  version "${VERSION}"
+  license "MIT"
+
+  on_arm do
+    url "${base}/keywatch_${VERSION}_Darwin_arm64.tar.gz"
+    sha256 "$(sha arm64)"
+  end
+
+  on_intel do
+    url "${base}/keywatch_${VERSION}_Darwin_x86_64.tar.gz"
+    sha256 "$(sha x86_64)"
+  end
+
+  depends_on :macos
+
+  def install
+    bin.install "keywatch"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/keywatch --version")
+  end
+end
+EOF
+'''
+
+[tasks."demo:record"]
+description = "Record the README demo: press keys while it runs, then Ctrl-C"
+depends = ["build"]
+run = "asciinema rec --overwrite --window-size 120x22 --idle-time-limit 2 --command .build/release/keywatch assets/demo/keywatch.cast"
+
+[tasks.demo]
+description = "Render the README demo GIF from the recording"
+run = "agg --theme 0d1117,c9d1d9,0d1117,ff7b72,7ee787,d29922,79c0ff,d2a8ff,a5d6ff,c9d1d9,8b949e,ffa198,aff5b4,e3b341,a5d6ff,d2a8ff,b6e3ff,f0f6fc --font-size 15 --line-height 1.3 --last-frame-duration 5 assets/demo/keywatch.cast assets/demo/keywatch.gif"

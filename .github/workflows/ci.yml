@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+  workflow_call: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@v4.3.0
+        with:
+          version: 2026.8.16
+          cache: true
+
+      - name: Run canonical checks
+        run: mise run check
+
+      - name: Build release archives
+        env:
+          VERSION: 0.0.0-ci
+        run: mise run release:build
+
+      - name: Verify release archives
+        run: |
+          (cd dist && shasum -a 256 -c checksums.txt)
+          for arch in arm64 x86_64; do
+            mkdir -p "smoke/$arch"
+            tar -xzf "dist/keywatch_0.0.0-ci_Darwin_${arch}.tar.gz" -C "smoke/$arch"
+            test "$(lipo -archs "smoke/$arch/keywatch")" = "$arch"
+          done
+          test "$(smoke/arm64/keywatch --version)" = "keywatch 0.0.0-ci"

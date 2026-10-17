@@ -14,7 +14,6 @@ See exactly what your keyboard sends to macOS, live in your terminal.
 
 ## Contents
 
-- [Why does this exist?](#why-does-this-exist)
 - [Installation](#installation)
 - [Permissions](#permissions)
 - [Usage](#usage)
@@ -24,21 +23,6 @@ See exactly what your keyboard sends to macOS, live in your terminal.
 - [Privacy](#privacy)
 - [Development](#development)
 - [License](#license)
-
-## Why does this exist?
-
-A hotkey on my programmable keyboard (a Glove80 running ZMK) never registered as
-a hold. The macro held ⌘ for as long as I held the key, but released the key
-itself after a few milliseconds. Nothing on the Mac made that visible:
-
-- Browser key testers only see what the browser receives. While ⌘ is held,
-  browsers do not even deliver key-up events for other keys.
-- GUI event viewers list events, but none I found show hold times and repeat
-  counts.
-- Linux has `evtest` and `wev`. I could not find a macOS terminal equivalent.
-
-`keywatch` shows each key's real down and up times, so a problem like this is
-visible in seconds.
 
 ## Installation
 
@@ -127,10 +111,10 @@ time             gap  key             event     ⌃⌥⇧⌘    held
 17:15:07.889          left ⇧ 56       ▼ down    ··⇧·
 17:15:07.929     +40  F19 80          ▼ down    ··⇧·
 17:15:08.330    +401  F19 80          ↻ repeat  ··⇧·
-17:15:09.207    +877  F19 80          ▲ up      ··⇧·     1278 ms ████████████ 9 repeats
-17:15:09.210      +3  left ⇧ 56       ▲ up      ····     1317 ms █████████████
+17:15:09.207    +877  F19 80          ▲ up      ··⇧·     1278 ms ▄▄▄▄▄▄▄▄▄▄▄▄ 9 repeats
+17:15:09.210      +3  left ⇧ 56       ▲ up      ····     1317 ms ▄▄▄▄▄▄▄▄▄▄▄▄▄
 ┄┄ 2.7 s idle ┄┄
-17:15:11.952   +2742  v 9             ▲ up      ···⌘       19 ms █  ⚠ posted by VoiceInk (1021)
+17:15:11.952   +2742  v 9             ▲ up      ···⌘       19 ms ▄  ⚠ posted by VoiceInk (1021)
 ```
 
 | Column | Meaning                                                                                     |
@@ -150,14 +134,14 @@ time             gap  key             event     ⌃⌥⇧⌘    held
 
 ### Example: a macro that lets go too early
 
-The macro that started this project, held for about 2 seconds (abridged):
+A ZMK macro held for about 2 seconds (abridged):
 
 ```text
 key             event     ⌃⌥⇧⌘    held
 left ⌘ 55       ▼ down    ···⌘
 1 18            ▼ down    ···⌘
-1 18            ▲ up      ···⌘       83 ms █
-left ⌘ 55       ▲ up      ····     1917 ms ███████████████████
+1 18            ▲ up      ···⌘       83 ms ▄
+left ⌘ 55       ▲ up      ····     1917 ms ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 ```
 
 The `1` lasts 83 ms however long the key is held, so an app that waits for a
@@ -169,8 +153,8 @@ as it would on any keyboard:
 left ⌘ 55       ▼ down    ···⌘
 1 18            ▼ down    ···⌘
 1 18            ↻ repeat  ···⌘
-1 18            ▲ up      ···⌘     1693 ms ████████████████ 48 repeats
-left ⌘ 55       ▲ up      ····     1706 ms █████████████████
+1 18            ▲ up      ···⌘     1693 ms ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ 48 repeats
+left ⌘ 55       ▲ up      ····     1706 ms ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 ```
 
 ## How it works

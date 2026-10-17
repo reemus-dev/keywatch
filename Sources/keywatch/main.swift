@@ -295,12 +295,12 @@ func modifierSegments(_ flags: CGEventFlags) -> [Segment] {
     return segments
 }
 
-/// "1693 ms ████████████████ 48 repeats": one bar block per 100 ms, up to 2 s.
+/// "1693 ms ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄ 48 repeats": one bar block per 100 ms, up to 2 s.
 func heldSegments(_ press: Press, at time: TimeInterval) -> [Segment] {
     let held = milliseconds(time - press.downAt)
     var segments = [
         seg(String(format: "%5d ms ", held), .bold),
-        seg(String(repeating: "█", count: max(1, min(20, held / 100))), .blue),
+        seg(String(repeating: "▄", count: max(1, min(20, held / 100))), .blue),
     ]
     if held > 2000 {
         segments.append(seg("▸", .blue))
